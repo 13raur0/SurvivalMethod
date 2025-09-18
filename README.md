@@ -1,6 +1,7 @@
 # SurvivalMethod
 
 A Minecraft (Paper) plugin that introduces realistic survival mechanics: a stamina system and a thirst system. Both systems are highly configurable and can be enabled or disabled independently.
+This plugin does not require any additional resource packs.
 
 ## Features
 
