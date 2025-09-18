@@ -1,15 +1,21 @@
 package com.braur0.SurvivalMethod;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerToggleSprintEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.entity.EntityAirChangeEvent;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionData;
+import org.bukkit.potion.PotionType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +26,10 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
     private final Map<Player, Long> lastExhaustionTime = new HashMap<>();
     private final double MAX_STAMINA = 100.0;
     private final double JUMP_UNLOCK_THRESHOLD = MAX_STAMINA * 0.2; // 20%
-    private final Map<Player, Boolean> updatingAir = new HashMap<>();
+
+    // 渇き管理
+    private final Map<Player, Integer> thirst = new HashMap<>();
+    private final int MAX_THIRST = 300;
 
     @Override
     public void onEnable() {
@@ -33,20 +42,14 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
                 long now = System.currentTimeMillis();
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     double current = stamina.getOrDefault(player, MAX_STAMINA);
-                    // ✅ ここでMAXなら処理スキップ
-                    if (current >= MAX_STAMINA) {
-                        continue;
-                    }
+                    if (current >= MAX_STAMINA) continue;
                     long lastExhaustion = lastExhaustionTime.getOrDefault(player, now);
                     long idleMillis = now - lastExhaustion;
                     if (!player.isSprinting()) {
-                        // 経過時間に応じて回復量を増加
-                        double regen = 1 + Math.min(idleMillis / 5000.0, 4); // 最大5倍速
+                        double regen = 1 + Math.min(idleMillis / 5000.0, 4);
                         current = Math.min(current + regen, MAX_STAMINA);
                         stamina.put(player, current);
                         updateExpBar(player, current);
-
-                        // ✅ スタミナ20%以上でジャンプブロック解除
                         if (current > MAX_STAMINA * 0.2) {
                             removeJumpBlock(player);
                             player.setWalkSpeed(0.2f);
@@ -54,32 +57,77 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
                     }
                 }
             }
-
         }.runTaskTimer(this, 0L, 20L);
 
-        // 酸素減少（5秒ごと）
+        // 渇き減少（5秒ごと）
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    int remaining = player.getRemainingAir();
-                    if (remaining < 0) {
-                        player.damage(1); // ハーフハート1つ分 = 1.0
+                    int current = thirst.getOrDefault(player, MAX_THIRST);
+                    if (current > 0) {
+                        current = Math.max(current - 5, 0);
+                        thirst.put(player, current);
+                        player.setRemainingAir(current);
+                    } else {
+                        player.damage(player.getMaxHealth() * 0.10);
                     }
-                    player.setRemainingAir(remaining - 5);
                 }
             }
-        }.runTaskTimer(this, 0L, 100L); // 100tick = 5秒
+        }.runTaskTimer(this, 0L, 100L);
+    }
+
+    // プレイヤー参加時に初期化
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        thirst.put(player, MAX_THIRST);
+        player.setRemainingAir(MAX_THIRST);
     }
 
     private void updateExpBar(Player player, double value) {
         player.setExp((float)(value / MAX_STAMINA));
     }
 
+    private void addThirst(Player player, int amount) {
+        int current = thirst.getOrDefault(player, MAX_THIRST);
+        int newValue = Math.min(current + amount, MAX_THIRST);
+        thirst.put(player, newValue);
+
+        // HUD即時更新
+        player.setRemainingAir(newValue);
+    }
+
+    @EventHandler
+    public void onItemConsume(PlayerItemConsumeEvent event) {
+        Player player = event.getPlayer();
+        Material item = event.getItem().getType();
+
+        switch (item) {
+            case POTION:
+                if (event.getItem().getItemMeta() instanceof PotionMeta meta) {
+                    PotionData data = meta.getBasePotionData();
+                    if (data.getType() == PotionType.WATER) {
+                        addThirst(player, 60);
+                    }
+                }
+                break;
+
+            case MUSHROOM_STEW:
+            case BEETROOT_SOUP:
+            case RABBIT_STEW:
+            case SUSPICIOUS_STEW:
+                addThirst(player, 20);
+                break;
+
+            default:
+                break;
+        }
+    }
+
     @EventHandler
     public void onSprint(PlayerToggleSprintEvent event) {
         Player player = event.getPlayer();
-
         if (event.isSprinting()) {
             new BukkitRunnable() {
                 @Override
@@ -88,17 +136,14 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
                         this.cancel();
                         return;
                     }
-
                     double current = stamina.getOrDefault(player, MAX_STAMINA);
                     double hungerRatio = player.getFoodLevel() / 20.0;
                     double sprintCost = 4 * (1 + (1 - hungerRatio));
-
                     current = Math.max(current - sprintCost, 0);
                     stamina.put(player, current);
                     lastExhaustionTime.put(player, System.currentTimeMillis());
                     updateExpBar(player, current);
 
-                    // スタミナが無くなったら歩行速度を落としジャンプ不能
                     if (current <= 0) {
                         player.setWalkSpeed(0.1f);
                         applyJumpBlock(player);
@@ -106,15 +151,15 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
                         player.setWalkSpeed(0.2f);
                     }
                 }
-            }.runTaskTimer(this, 0L, 20L); // 10tickごとにスタミナ消費
+            }.runTaskTimer(this, 0L, 20L);
         }
     }
 
     private void applyJumpBlock(Player player) {
         player.addPotionEffect(new PotionEffect(
                 PotionEffectType.JUMP,
-                -1, // 事実上の永続
-                200,               // Lv200 → ジャンプ不能
+                -1,
+                200,
                 false,
                 false,
                 false
@@ -126,34 +171,14 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onSprintToggle(PlayerToggleSprintEvent event) {
-        Player player = event.getPlayer();
-        double current = stamina.getOrDefault(player, MAX_STAMINA);
-
-        if (event.isSprinting() && current <= 0) {
-            event.setCancelled(true); // スタミナ0ならスプリント禁止
-            player.setWalkSpeed(0.1f);
-            applyJumpBlock(player);
-        }
-    }
-
-
-    @EventHandler
     public void onAirChange(EntityAirChangeEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
 
-        if (updatingAir.getOrDefault(player, false)) return; // 再入防止
-        updatingAir.put(player, true);
+        int current = thirst.getOrDefault(player, MAX_THIRST);
 
-        try {
-            // 酸素が増える場合だけキャンセル
-            if (event.getAmount() > player.getRemainingAir()) {
-                event.setCancelled(true);
-            }
-
-        } finally {
-            updatingAir.put(player, false);
+        // Map の値より増える場合のみキャンセル（サーバー自動回復の無効化）
+        if (event.getAmount() > current) {
+            event.setCancelled(true);
         }
     }
-
 }
