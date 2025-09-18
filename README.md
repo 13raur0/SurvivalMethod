@@ -34,6 +34,12 @@ A Minecraft (Paper) plugin that introduces realistic survival mechanics: a stami
 
 All settings can be adjusted in `config.yml`, which is generated in the `plugins/SurvivalMethod/` directory on the first run. The file is heavily commented to explain what each option does. Please refer to the `config.yml` file for detailed configuration.
 
+## Supported Versions
+
+This plugin is officially developed and tested on **PaperMC 1.20.1**.
+
+While it may work on newer `1.20.x` versions, full functionality is not guaranteed. Versions below `1.20` are not supported.
+
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
