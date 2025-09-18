@@ -12,12 +12,18 @@ This plugin does not require any additional resource packs.
 - **Regeneration**: Stamina regenerates automatically when you are not sprinting. The regeneration rate increases the longer you rest.
 - **Hunger Penalty**: Stamina consumption increases as your hunger level drops.
 
+![SM_Run](https://github.com/user-attachments/assets/61f7352b-37d4-46d3-9b75-2f199b887ed3)
+
 ### Thirst System
 
 - **Thirst Gauge**: Your thirst level is displayed using the vanilla oxygen bar. It decreases over time.
 - **Dehydration**: When your thirst gauge is empty, you will start taking damage after a short delay.
 - **Rehydration**: You can restore your thirst by drinking water bottles, stews, or soups.
 - **Diving**: The thirst system is temporarily disabled while you are underwater, switching back to the default oxygen mechanics. Your thirst level will not decrease while diving.
+  
+![SM_Drink_Water](https://github.com/user-attachments/assets/ae9d5814-1713-48e6-a7f8-f945be84e8d4)
+
+![SM_Change_Air_to_Thirst](https://github.com/user-attachments/assets/15e4a1a6-279c-4ffe-9f93-57dafbf529e4)
 
 ### High Configurability
 
