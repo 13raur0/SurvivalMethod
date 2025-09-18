@@ -1,0 +1,32 @@
+# SurvivalMethod Plugin Configuration
+
+# Core Settings
+core:
+  reset-on-join: true # Whether to reset player stats (hunger, stamina, thirst) on join.
+  reset-on-respawn: true # Whether to reset player stats (hunger, stamina, thirst) on respawn.
+
+# Stamina System Settings
+stamina:
+  enabled: true # Whether to enable the stamina system.
+  max-stamina: 100.0 # The maximum stamina value. Displayed as the experience bar.
+  jump-unlock-threshold-percent: 20.0 # When stamina exceeds this percentage, jump restriction and slowness are removed.
+  exhausted-walk-speed: 0.1 # Player's walk speed when stamina is depleted. (Minecraft default is 0.2)
+  # Stamina regeneration per second. (Regen = base-regen + idle bonus)
+  base-regen: 1.0 # Base regeneration amount.
+  max-idle-bonus: 4.0 # The maximum bonus regeneration amount, which increases based on time not sprinting.
+  # Stamina consumption per second. Increases based on hunger level.
+  base-sprint-cost: 4.0 # Base consumption amount.
+
+# Thirst System Settings
+thirst:
+  enabled: true # Whether to enable the thirst system.
+  max-thirst: 285 # Maximum thirst value. Displayed as the oxygen bar. (300 is the max, but 285 is recommended for display reasons)
+  min-thirst: -15 # Minimum thirst value. The gauge will not go below this.
+  decrease-amount: 30 # The amount of thirst to decrease at each interval. (30 is one bubble)
+  decrease-interval-seconds: 30 # How many seconds between each thirst decrease event.
+  damage-amount: 2.0 # Damage dealt when thirst is zero. (2.0 is one heart)
+  damage-interval-seconds: 3 # How many seconds between each damage event when thirst is zero.
+  # Water Recovery Amounts
+  potion-recover-amount: 60 # Thirst recovered from drinking a water bottle. (30 is one bubble)
+  stew-recover-amount: 30 # Thirst recovered from eating any stew or soup. (30 is one bubble)
+
