@@ -20,7 +20,7 @@ This plugin does not require any additional resource packs.
 - **Dehydration**: When your thirst gauge is empty, you will start taking damage after a short delay.
 - **Rehydration**: You can restore your thirst by drinking water bottles, stews, or soups.
 - **Diving**: The thirst system is temporarily disabled while you are underwater, switching back to the default oxygen mechanics. Your thirst level will not decrease while diving.
-  
+
 ![SM_Drink_Water](https://github.com/user-attachments/assets/ae9d5814-1713-48e6-a7f8-f945be84e8d4)
 
 ![SM_Change_Air_to_Thirst](https://github.com/user-attachments/assets/15e4a1a6-279c-4ffe-9f93-57dafbf529e4)
