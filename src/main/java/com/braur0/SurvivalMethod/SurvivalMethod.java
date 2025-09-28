@@ -47,15 +47,19 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
     // Handles player initialization on join.
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        // Initialize systems for the player regardless of the reset setting.
+        // This ensures the systems are active for the player.
+        if (staminaSystem != null) {
+            staminaSystem.initializeForPlayer(player, resetOnJoin);
+        }
+        if (thirstSystem != null) {
+            thirstSystem.initializeForPlayer(player, resetOnJoin);
+        }
+
         if (resetOnJoin) {
-            Player player = event.getPlayer();
             player.setFoodLevel(20); // Set hunger to max
-            if (staminaSystem != null) {
-                staminaSystem.initializeForPlayer(player);
-            }
-            if (thirstSystem != null) {
-                thirstSystem.initializeForPlayer(player);
-            }
         }
     }
 
@@ -70,10 +74,10 @@ public class SurvivalMethod extends JavaPlugin implements Listener {
                 public void run() {
                     player.setFoodLevel(20); // Set hunger to max
                     if (staminaSystem != null) {
-                        staminaSystem.initializeForPlayer(player);
+                        staminaSystem.initializeForPlayer(player, resetOnRespawn);
                     }
                     if (thirstSystem != null) {
-                        thirstSystem.initializeForPlayer(player);
+                        thirstSystem.initializeForPlayer(player, resetOnRespawn);
                     }
                 }
             }.runTask(this);

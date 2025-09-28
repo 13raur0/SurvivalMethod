@@ -12,13 +12,14 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.Map;
 
 public class StaminaSystem implements Listener {
 
     private final Plugin plugin;
-    private final Map<Player, Double> stamina = new HashMap<>();
-    private final Map<Player, Long> lastExhaustionTime = new HashMap<>();
+    private final Map<UUID, Double> stamina = new HashMap<>();
+    private final Map<UUID, Long> lastExhaustionTime = new HashMap<>();
 
     // --- Config Values ---
     private final double MAX_STAMINA;
@@ -46,20 +47,26 @@ public class StaminaSystem implements Listener {
 
     /**
      * Initializes stamina for a player.
+     * If reset is true, stamina is set to max. Otherwise, it remains unchanged.
      * @param player The player to initialize.
+     * @param reset  Whether to reset the player's stamina to max.
      */
-    public void initializeForPlayer(Player player) {
-        stamina.put(player, MAX_STAMINA);
-        updateExpBar(player, MAX_STAMINA);
+    public void initializeForPlayer(Player player, boolean reset) {
         player.setWalkSpeed(DEFAULT_WALK_SPEED);
         removeJumpBlock(player);
+        UUID playerUUID = player.getUniqueId();
+        if (reset) {
+            stamina.put(playerUUID, MAX_STAMINA);
+        }
+        updateExpBar(player, stamina.getOrDefault(playerUUID, MAX_STAMINA));
     }
     /**
      * Cleans up player data to prevent memory leaks.
      */
     private void cleanupPlayer(Player player) {
-        stamina.remove(player);
-        lastExhaustionTime.remove(player);
+        UUID playerUUID = player.getUniqueId();
+        stamina.remove(playerUUID);
+        lastExhaustionTime.remove(playerUUID);
     }
 
     @EventHandler
@@ -73,16 +80,17 @@ public class StaminaSystem implements Listener {
             public void run() {
                 long now = System.currentTimeMillis();
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    double current = stamina.getOrDefault(player, MAX_STAMINA);
+                    UUID playerUUID = player.getUniqueId();
+                    double current = stamina.getOrDefault(playerUUID, MAX_STAMINA);
                     if (current >= MAX_STAMINA) continue;
 
-                    long lastExhaustion = lastExhaustionTime.getOrDefault(player, now);
+                    long lastExhaustion = lastExhaustionTime.getOrDefault(playerUUID, now);
                     long idleMillis = now - lastExhaustion;
 
                     if (!player.isSprinting()) {
                         double regen = BASE_REGEN + Math.min(idleMillis / 5000.0, MAX_IDLE_BONUS);
                         current = Math.min(current + regen, MAX_STAMINA);
-                        stamina.put(player, current);
+                        stamina.put(playerUUID, current);
                         updateExpBar(player, current);
 
                         if (current > JUMP_UNLOCK_THRESHOLD) {
@@ -100,15 +108,16 @@ public class StaminaSystem implements Listener {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
+                    UUID playerUUID = player.getUniqueId();
                     if (player.isSprinting()) {
-                        double current = stamina.getOrDefault(player, MAX_STAMINA);
+                        double current = stamina.getOrDefault(playerUUID, MAX_STAMINA);
                         if (current <= 0) continue;
 
                         double hungerRatio = player.getFoodLevel() / 20.0;
                         double sprintCost = BASE_SPRINT_COST * (1 + (1 - hungerRatio));
                         current = Math.max(current - sprintCost, 0);
-                        stamina.put(player, current);
-                        lastExhaustionTime.put(player, System.currentTimeMillis());
+                        stamina.put(playerUUID, current);
+                        lastExhaustionTime.put(playerUUID, System.currentTimeMillis());
                         updateExpBar(player, current);
 
                         if (current <= 0) {
